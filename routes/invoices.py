@@ -3,31 +3,22 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
-from sqlalchemy import case
 from database import get_db
-from models import Customer, Invoice, LineItem
+from models import Customer, Invoice, LineItem, User
 from services.pdf import generate_invoice_pdf
-from utils import flash, render
+from utils import flash, render, require_login
 
 router = APIRouter(prefix="/invoices")
 
-# 許可されたステータス遷移: (現在, action) → 次のステータス
 _TRANSITIONS = {
     ("draft", "send"): "sent",
     ("sent", "pay"): "paid",
     ("sent", "overdue"): "overdue",
     ("overdue", "pay"): "paid",
 }
-
-
-def _recalc_totals(invoice: Invoice) -> None:
-    subtotal = sum(item.amount for item in invoice.line_items)
-    invoice.subtotal = subtotal
-    invoice.tax_amount = math.floor(subtotal * 0.10)
-    invoice.total = invoice.subtotal + invoice.tax_amount
-
 
 _INVOICE_STATUS_ORDER = case(
     {"draft": 1, "sent": 2, "overdue": 3, "paid": 4},
@@ -43,6 +34,23 @@ _INVOICE_SORT_COLS = {
     "due_date":   Invoice.due_date,
 }
 
+
+def _get_invoice_or_404(invoice_id: int, user_id: int, db: Session) -> Invoice:
+    invoice = db.query(Invoice).filter(
+        Invoice.id == invoice_id, Invoice.user_id == user_id
+    ).first()
+    if not invoice:
+        raise HTTPException(status_code=404)
+    return invoice
+
+
+def _recalc_totals(invoice: Invoice) -> None:
+    subtotal = sum(item.amount for item in invoice.line_items)
+    invoice.subtotal = subtotal
+    invoice.tax_amount = math.floor(subtotal * 0.10)
+    invoice.total = invoice.subtotal + invoice.tax_amount
+
+
 @router.get("")
 def list_invoices(
     request: Request,
@@ -50,8 +58,9 @@ def list_invoices(
     sort: str = "issue_date",
     order: str = "desc",
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
 ):
-    q = db.query(Invoice).join(Customer)
+    q = db.query(Invoice).join(Customer).filter(Invoice.user_id == current_user.id)
     if status:
         q = q.filter(Invoice.status == status)
     col = _INVOICE_SORT_COLS.get(sort, Invoice.issue_date)
@@ -63,10 +72,13 @@ def list_invoices(
 
 
 @router.get("/{invoice_id}/pdf")
-def invoice_pdf(invoice_id: int, db: Session = Depends(get_db)):
-    invoice = db.get(Invoice, invoice_id)
-    if not invoice:
-        raise HTTPException(status_code=404)
+def invoice_pdf(
+    invoice_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
+):
+    invoice = _get_invoice_or_404(invoice_id, current_user.id, db)
     pdf_bytes = generate_invoice_pdf(invoice)
     return Response(
         content=pdf_bytes,
@@ -76,18 +88,24 @@ def invoice_pdf(invoice_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{invoice_id}")
-def detail_invoice(invoice_id: int, request: Request, db: Session = Depends(get_db)):
-    invoice = db.get(Invoice, invoice_id)
-    if not invoice:
-        raise HTTPException(status_code=404)
+def detail_invoice(
+    invoice_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
+):
+    invoice = _get_invoice_or_404(invoice_id, current_user.id, db)
     return render(request, "invoices/detail.html", invoice=invoice)
 
 
 @router.get("/{invoice_id}/edit")
-def edit_invoice_form(invoice_id: int, request: Request, db: Session = Depends(get_db)):
-    invoice = db.get(Invoice, invoice_id)
-    if not invoice:
-        raise HTTPException(status_code=404)
+def edit_invoice_form(
+    invoice_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
+):
+    invoice = _get_invoice_or_404(invoice_id, current_user.id, db)
     return render(request, "invoices/form.html", invoice=invoice)
 
 
@@ -96,14 +114,13 @@ def update_invoice(
     invoice_id: int,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
     title: str = Form(...),
     issue_date: date = Form(...),
     due_date: str = Form(""),
     notes: str = Form(""),
 ):
-    invoice = db.get(Invoice, invoice_id)
-    if not invoice:
-        raise HTTPException(status_code=404)
+    invoice = _get_invoice_or_404(invoice_id, current_user.id, db)
     if invoice.status != "draft":
         raise HTTPException(status_code=403, detail="draft 状態の請求書のみ編集できます")
     invoice.title = title
@@ -120,11 +137,10 @@ def change_status(
     invoice_id: int,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
     action: str = Form(...),
 ):
-    invoice = db.get(Invoice, invoice_id)
-    if not invoice:
-        raise HTTPException(status_code=404)
+    invoice = _get_invoice_or_404(invoice_id, current_user.id, db)
     new_status = _TRANSITIONS.get((invoice.status, action))
     if not new_status:
         flash(request, "この操作は現在の状態では実行できません", "error")
@@ -143,15 +159,14 @@ def add_line_item(
     invoice_id: int,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
     description: str = Form(...),
     quantity: float = Form(...),
     unit: str = Form(""),
     unit_price: int = Form(...),
     sort_order: int = Form(...),
 ):
-    invoice = db.get(Invoice, invoice_id)
-    if not invoice:
-        raise HTTPException(status_code=404)
+    invoice = _get_invoice_or_404(invoice_id, current_user.id, db)
     if invoice.status != "draft":
         raise HTTPException(status_code=403)
     item = LineItem(
@@ -176,15 +191,14 @@ def update_line_item(
     item_id: int,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
     description: str = Form(...),
     quantity: float = Form(...),
     unit: str = Form(""),
     unit_price: int = Form(...),
     sort_order: int = Form(...),
 ):
-    invoice = db.get(Invoice, invoice_id)
-    if not invoice:
-        raise HTTPException(status_code=404)
+    invoice = _get_invoice_or_404(invoice_id, current_user.id, db)
     if invoice.status != "draft":
         raise HTTPException(status_code=403)
     item = db.get(LineItem, item_id)
@@ -207,10 +221,9 @@ def delete_line_item(
     item_id: int,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
 ):
-    invoice = db.get(Invoice, invoice_id)
-    if not invoice:
-        raise HTTPException(status_code=404)
+    invoice = _get_invoice_or_404(invoice_id, current_user.id, db)
     if invoice.status != "draft":
         raise HTTPException(status_code=403)
     item = db.get(LineItem, item_id)

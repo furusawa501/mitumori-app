@@ -6,7 +6,8 @@ from services.numbering import next_invoice_number
 
 def convert_quote_to_invoice(db, quote: Quote) -> Invoice:
     invoice = Invoice(
-        invoice_number=next_invoice_number(db, date.today().year),
+        user_id=quote.user_id,
+        invoice_number=next_invoice_number(db, date.today().year, quote.user_id),
         quote_id=quote.id,
         customer_id=quote.customer_id,
         title=quote.title,

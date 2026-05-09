@@ -30,6 +30,10 @@
             {{ label }}
           </a>
           {% endfor %}
+          <span class="text-slate-500 text-sm ml-3 mr-1">{{ request.session.get("user_email", "") }}</span>
+          <form action="/logout" method="post" class="inline">
+            <button type="submit" class="text-sm px-3 py-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-700 transition-colors">ログアウト</button>
+          </form>
         </div>
 
         <!-- ハンバーガーボタン（モバイルのみ） -->
@@ -49,6 +53,12 @@
           {{ label }}
         </a>
         {% endfor %}
+        <div class="border-t border-slate-700 mt-2 pt-2">
+          <p class="text-slate-500 text-xs px-3 pb-1">{{ request.session.get("user_email", "") }}</p>
+          <form action="/logout" method="post">
+            <button type="submit" class="block w-full text-left text-sm px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-700 transition-colors">ログアウト</button>
+          </form>
+        </div>
       </div>
     </div>
   </nav>

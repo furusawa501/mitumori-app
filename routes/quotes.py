@@ -3,32 +3,23 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
-from sqlalchemy import case
 from database import get_db
-from models import Customer, LineItem, Quote
+from models import Customer, LineItem, Quote, User
 from services.conversion import convert_quote_to_invoice
 from services.numbering import next_quote_number
 from services.pdf import generate_quote_pdf
-from utils import flash, render
+from utils import flash, render, require_login
 
 router = APIRouter(prefix="/quotes")
 
-# 許可されたステータス遷移: (現在, action) → 次のステータス
 _TRANSITIONS = {
     ("draft", "send"): "sent",
     ("sent", "accept"): "accepted",
     ("sent", "reject"): "rejected",
 }
-
-
-def _recalc_totals(quote: Quote) -> None:
-    subtotal = sum(item.amount for item in quote.line_items)
-    quote.subtotal = subtotal
-    quote.tax_amount = math.floor(subtotal * 0.10)
-    quote.total = quote.subtotal + quote.tax_amount
-
 
 _QUOTE_STATUS_ORDER = case(
     {"draft": 1, "sent": 2, "accepted": 3, "rejected": 4, "converted": 5},
@@ -43,6 +34,23 @@ _QUOTE_SORT_COLS = {
     "issue_date": Quote.issue_date,
 }
 
+
+def _get_quote_or_404(quote_id: int, user_id: int, db: Session) -> Quote:
+    quote = db.query(Quote).filter(
+        Quote.id == quote_id, Quote.user_id == user_id
+    ).first()
+    if not quote:
+        raise HTTPException(status_code=404)
+    return quote
+
+
+def _recalc_totals(quote: Quote) -> None:
+    subtotal = sum(item.amount for item in quote.line_items)
+    quote.subtotal = subtotal
+    quote.tax_amount = math.floor(subtotal * 0.10)
+    quote.total = quote.subtotal + quote.tax_amount
+
+
 @router.get("")
 def list_quotes(
     request: Request,
@@ -50,8 +58,9 @@ def list_quotes(
     sort: str = "issue_date",
     order: str = "desc",
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
 ):
-    q = db.query(Quote).join(Customer)
+    q = db.query(Quote).join(Customer).filter(Quote.user_id == current_user.id)
     if status:
         q = q.filter(Quote.status == status)
     col = _QUOTE_SORT_COLS.get(sort, Quote.issue_date)
@@ -63,8 +72,16 @@ def list_quotes(
 
 
 @router.get("/new")
-def new_quote_form(request: Request, db: Session = Depends(get_db)):
-    customers = db.query(Customer).order_by(Customer.company_name).all()
+def new_quote_form(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
+):
+    customers = (
+        db.query(Customer)
+        .filter(Customer.user_id == current_user.id)
+        .order_by(Customer.company_name).all()
+    )
     return render(request, "quotes/form.html", quote=None, customers=customers)
 
 
@@ -72,19 +89,20 @@ def new_quote_form(request: Request, db: Session = Depends(get_db)):
 def create_quote(
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
     customer_id: int = Form(...),
     title: str = Form(...),
     issue_date: date = Form(...),
     valid_until: str = Form(""),
     notes: str = Form(""),
 ):
-    valid_until_date = date.fromisoformat(valid_until) if valid_until else None
     quote = Quote(
-        quote_number=next_quote_number(db, issue_date.year),
+        user_id=current_user.id,
+        quote_number=next_quote_number(db, issue_date.year, current_user.id),
         customer_id=customer_id,
         title=title,
         issue_date=issue_date,
-        valid_until=valid_until_date,
+        valid_until=date.fromisoformat(valid_until) if valid_until else None,
         notes=notes or None,
     )
     db.add(quote)
@@ -93,20 +111,46 @@ def create_quote(
     return RedirectResponse(f"/quotes/{quote.id}/edit", status_code=303)
 
 
+@router.get("/{quote_id}/pdf")
+def quote_pdf(
+    quote_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
+):
+    quote = _get_quote_or_404(quote_id, current_user.id, db)
+    pdf_bytes = generate_quote_pdf(quote)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{quote.quote_number}.pdf"'},
+    )
+
+
 @router.get("/{quote_id}")
-def detail_quote(quote_id: int, request: Request, db: Session = Depends(get_db)):
-    quote = db.get(Quote, quote_id)
-    if not quote:
-        raise HTTPException(status_code=404)
+def detail_quote(
+    quote_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
+):
+    quote = _get_quote_or_404(quote_id, current_user.id, db)
     return render(request, "quotes/detail.html", quote=quote)
 
 
 @router.get("/{quote_id}/edit")
-def edit_quote_form(quote_id: int, request: Request, db: Session = Depends(get_db)):
-    quote = db.get(Quote, quote_id)
-    if not quote:
-        raise HTTPException(status_code=404)
-    customers = db.query(Customer).order_by(Customer.company_name).all()
+def edit_quote_form(
+    quote_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
+):
+    quote = _get_quote_or_404(quote_id, current_user.id, db)
+    customers = (
+        db.query(Customer)
+        .filter(Customer.user_id == current_user.id)
+        .order_by(Customer.company_name).all()
+    )
     return render(request, "quotes/form.html", quote=quote, customers=customers)
 
 
@@ -115,15 +159,14 @@ def update_quote(
     quote_id: int,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
     customer_id: int = Form(...),
     title: str = Form(...),
     issue_date: date = Form(...),
     valid_until: str = Form(""),
     notes: str = Form(""),
 ):
-    quote = db.get(Quote, quote_id)
-    if not quote:
-        raise HTTPException(status_code=404)
+    quote = _get_quote_or_404(quote_id, current_user.id, db)
     if quote.status != "draft":
         raise HTTPException(status_code=403, detail="draft 状態の見積書のみ編集できます")
     quote.customer_id = customer_id
@@ -137,10 +180,13 @@ def update_quote(
 
 
 @router.post("/{quote_id}/delete")
-def delete_quote(quote_id: int, request: Request, db: Session = Depends(get_db)):
-    quote = db.get(Quote, quote_id)
-    if not quote:
-        raise HTTPException(status_code=404)
+def delete_quote(
+    quote_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
+):
+    quote = _get_quote_or_404(quote_id, current_user.id, db)
     if quote.status != "draft":
         raise HTTPException(status_code=403, detail="draft 状態の見積書のみ削除できます")
     db.delete(quote)
@@ -154,11 +200,10 @@ def change_status(
     quote_id: int,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
     action: str = Form(...),
 ):
-    quote = db.get(Quote, quote_id)
-    if not quote:
-        raise HTTPException(status_code=404)
+    quote = _get_quote_or_404(quote_id, current_user.id, db)
     new_status = _TRANSITIONS.get((quote.status, action))
     if not new_status:
         flash(request, "この操作は現在の状態では実行できません", "error")
@@ -168,28 +213,18 @@ def change_status(
         return RedirectResponse(f"/quotes/{quote_id}", status_code=303)
     quote.status = new_status
     db.commit()
-    flash(request, f"ステータスを更新しました", "success")
+    flash(request, "ステータスを更新しました", "success")
     return RedirectResponse(f"/quotes/{quote_id}", status_code=303)
 
 
-@router.get("/{quote_id}/pdf")
-def quote_pdf(quote_id: int, db: Session = Depends(get_db)):
-    quote = db.get(Quote, quote_id)
-    if not quote:
-        raise HTTPException(status_code=404)
-    pdf_bytes = generate_quote_pdf(quote)
-    return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{quote.quote_number}.pdf"'},
-    )
-
-
 @router.post("/{quote_id}/convert")
-def convert_quote(quote_id: int, request: Request, db: Session = Depends(get_db)):
-    quote = db.get(Quote, quote_id)
-    if not quote:
-        raise HTTPException(status_code=404)
+def convert_quote(
+    quote_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
+):
+    quote = _get_quote_or_404(quote_id, current_user.id, db)
     if quote.status != "accepted":
         flash(request, "承認済みの見積書のみ変換できます", "error")
         return RedirectResponse(f"/quotes/{quote_id}", status_code=303)
@@ -203,15 +238,14 @@ def add_line_item(
     quote_id: int,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
     description: str = Form(...),
     quantity: float = Form(...),
     unit: str = Form(""),
     unit_price: int = Form(...),
     sort_order: int = Form(...),
 ):
-    quote = db.get(Quote, quote_id)
-    if not quote:
-        raise HTTPException(status_code=404)
+    quote = _get_quote_or_404(quote_id, current_user.id, db)
     if quote.status != "draft":
         raise HTTPException(status_code=403)
     item = LineItem(
@@ -236,15 +270,14 @@ def update_line_item(
     item_id: int,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
     description: str = Form(...),
     quantity: float = Form(...),
     unit: str = Form(""),
     unit_price: int = Form(...),
     sort_order: int = Form(...),
 ):
-    quote = db.get(Quote, quote_id)
-    if not quote:
-        raise HTTPException(status_code=404)
+    quote = _get_quote_or_404(quote_id, current_user.id, db)
     if quote.status != "draft":
         raise HTTPException(status_code=403)
     item = db.get(LineItem, item_id)
@@ -267,10 +300,9 @@ def delete_line_item(
     item_id: int,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_login),
 ):
-    quote = db.get(Quote, quote_id)
-    if not quote:
-        raise HTTPException(status_code=404)
+    quote = _get_quote_or_404(quote_id, current_user.id, db)
     if quote.status != "draft":
         raise HTTPException(status_code=403)
     item = db.get(LineItem, item_id)

@@ -1,11 +1,18 @@
 import math
 from datetime import date, timedelta
+
+from passlib.context import CryptContext
+
 from database import Base, engine, SessionLocal
-from models import Customer, Invoice, Quote, LineItem
+from models import Customer, Invoice, LineItem, Quote, User
 from services.conversion import convert_quote_to_invoice
-from services.numbering import next_invoice_number
 
 Base.metadata.create_all(engine)
+
+_pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+TEST_EMAIL = "demo@example.com"
+TEST_PASSWORD = "password123"
 
 CUSTOMERS = [
     ("株式会社アクシア", "田中 誠", "tanaka@axia.co.jp", "03-1234-5678", "東京都千代田区丸の内1-1-1"),
@@ -98,7 +105,13 @@ with SessionLocal() as db:
     db.query(Invoice).delete()
     db.query(Quote).delete()
     db.query(Customer).delete()
+    db.query(User).delete()
     db.commit()
+
+    # テストユーザーを作成
+    user = User(email=TEST_EMAIL, password_hash=_pwd.hash(TEST_PASSWORD))
+    db.add(user)
+    db.flush()
 
     today = date.today()
     year = today.year
@@ -106,6 +119,7 @@ with SessionLocal() as db:
     customers = []
     for company, contact, email, phone, address in CUSTOMERS:
         c = Customer(
+            user_id=user.id,
             company_name=company,
             contact_name=contact,
             email=email,
@@ -124,6 +138,7 @@ with SessionLocal() as db:
         # converted は一度 accepted で作り、後で変換する
         initial_status = "accepted" if target_status == "converted" else target_status
         q = Quote(
+            user_id=user.id,
             quote_number=f"EST-{year}-{i:03d}",
             customer_id=customers[cust_idx].id,
             status=initial_status,
@@ -157,10 +172,10 @@ with SessionLocal() as db:
         if target_status == "converted":
             db.refresh(q)
             inv = convert_quote_to_invoice(db, q)
-            # 支払期限を発行日+30日に設定
             inv.due_date = q.issue_date + timedelta(days=30)
             inv.status = "sent"
             db.commit()
 
     invoice_count = db.query(Invoice).count()
-    print(f"テストデータを作成しました：顧客10件、見積書20件、請求書{invoice_count}件")
+    print(f"テストデータを作成しました：ユーザー1件、顧客10件、見積書20件、請求書{invoice_count}件")
+    print(f"ログイン情報：{TEST_EMAIL} / {TEST_PASSWORD}")
