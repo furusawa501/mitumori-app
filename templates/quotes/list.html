@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "macros.html" import quote_badge %}
+{% block title %}見積書一覧{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-xl font-bold">見積書一覧</h1>
+  <a href="/quotes/new" class="bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700">
+    + 見積書を作成
+  </a>
+</div>
+
+<!-- ステータスフィルタ -->
+<div class="flex gap-1 mb-4 text-sm">
+  {% set filters = [
+    (none, "すべて"),
+    ("draft", "下書き"),
+    ("sent", "送付済み"),
+    ("accepted", "承認済み"),
+    ("rejected", "却下済み"),
+    ("converted", "変換済み"),
+  ] %}
+  {% for val, label in filters %}
+  <a href="/quotes{% if val %}?status={{ val }}{% endif %}"
+    class="px-3 py-1 rounded {% if current_status == val %}bg-blue-600 text-white{% else %}bg-white border border-gray-200 text-gray-600 hover:bg-gray-50{% endif %}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if quotes %}
+<div class="bg-white border border-gray-200 rounded overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-500 text-left">
+      <tr>
+        <th class="px-4 py-3 font-medium">見積番号</th>
+        <th class="px-4 py-3 font-medium">顧客</th>
+        <th class="px-4 py-3 font-medium">件名</th>
+        <th class="px-4 py-3 font-medium">ステータス</th>
+        <th class="px-4 py-3 font-medium text-right">合計（税込）</th>
+        <th class="px-4 py-3 font-medium">発行日</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for q in quotes %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">
+          <a href="/quotes/{{ q.id }}" class="text-blue-600 hover:underline font-medium">{{ q.quote_number }}</a>
+        </td>
+        <td class="px-4 py-3 text-gray-700">{{ q.customer.company_name }}</td>
+        <td class="px-4 py-3 text-gray-700">{{ q.title }}</td>
+        <td class="px-4 py-3">{{ quote_badge(q.status) }}</td>
+        <td class="px-4 py-3 text-right font-medium">¥{{ "{:,}".format(q.total) }}</td>
+        <td class="px-4 py-3 text-gray-500">{{ q.issue_date.strftime("%Y/%m/%d") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center py-20 text-gray-400">
+  <p class="mb-3">見積書がありません</p>
+  <a href="/quotes/new" class="text-blue-600 hover:underline text-sm">最初の見積書を作成する</a>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -33,22 +33,22 @@
 
 ## Phase 2 — 見積書
 
-- [ ] `services/numbering.py` を作成（`next_quote_number`, `next_invoice_number`）
-- [ ] `routes/quotes.py` を作成
-  - [ ] `GET  /quotes` — 一覧（`?status=` フィルタ付き）
-  - [ ] `GET  /quotes/new` — 作成フォーム
-  - [ ] `POST /quotes` — 作成（採番・金額初期化）
-  - [ ] `GET  /quotes/{id}` — 詳細
-  - [ ] `GET  /quotes/{id}/edit` — 編集フォーム
-  - [ ] `POST /quotes/{id}` — 更新（`draft` のみ、金額再計算）
-  - [ ] `POST /quotes/{id}/delete` — 削除（`draft` のみ）
-  - [ ] `POST /quotes/{id}/status` — ステータス変更（`send` / `accept` / `reject`）
-  - [ ] `POST /quotes/{id}/items` — 明細行追加
-  - [ ] `POST /quotes/{id}/items/{item_id}` — 明細行更新
-  - [ ] `POST /quotes/{id}/items/{item_id}/delete` — 明細行削除
-- [ ] `templates/quotes/list.html`
-- [ ] `templates/quotes/detail.html`（ステータスに応じたボタン切り替え）
-- [ ] `templates/quotes/form.html`（新規・編集共用、明細行の動的追加/削除は vanilla JS）
+- [x] `services/numbering.py` を作成（`next_quote_number`, `next_invoice_number`）
+- [x] `routes/quotes.py` を作成
+  - [x] `GET  /quotes` — 一覧（`?status=` フィルタ付き）
+  - [x] `GET  /quotes/new` — 作成フォーム
+  - [x] `POST /quotes` — 作成（採番・金額初期化）
+  - [x] `GET  /quotes/{id}` — 詳細
+  - [x] `GET  /quotes/{id}/edit` — 編集フォーム
+  - [x] `POST /quotes/{id}` — 更新（`draft` のみ、金額再計算）
+  - [x] `POST /quotes/{id}/delete` — 削除（`draft` のみ）
+  - [x] `POST /quotes/{id}/status` — ステータス変更（`send` / `accept` / `reject`）
+  - [x] `POST /quotes/{id}/items` — 明細行追加
+  - [x] `POST /quotes/{id}/items/{item_id}` — 明細行更新
+  - [x] `POST /quotes/{id}/items/{item_id}/delete` — 明細行削除
+- [x] `templates/quotes/list.html`
+- [x] `templates/quotes/detail.html`（ステータスに応じたボタン切り替え）
+- [x] `templates/quotes/form.html`（新規・編集共用、明細行の動的追加/削除は vanilla JS）
 
 ---
 
