@@ -77,13 +77,13 @@
 
 ## Phase 4 — PDF 生成
 
-- [ ] `services/pdf.py` を作成（`generate_quote_pdf`, `generate_invoice_pdf`）
-- [ ] `templates/pdf/quote.html`（WeasyPrint 用、印刷スタイル付き）
-- [ ] `templates/pdf/invoice.html`（WeasyPrint 用、印刷スタイル付き）
-- [ ] `routes/quotes.py` に PDF エンドポイント追加
-  - [ ] `GET /quotes/{id}/pdf`
-- [ ] `routes/invoices.py` に PDF エンドポイント追加
-  - [ ] `GET /invoices/{id}/pdf`
+- [x] `services/pdf.py` を作成（`generate_quote_pdf`, `generate_invoice_pdf`）
+- [x] `templates/pdf/quote.html`（WeasyPrint 用、印刷スタイル付き）
+- [x] `templates/pdf/invoice.html`（WeasyPrint 用、印刷スタイル付き）
+- [x] `routes/quotes.py` に PDF エンドポイント追加
+  - [x] `GET /quotes/{id}/pdf`
+- [x] `routes/invoices.py` に PDF エンドポイント追加
+  - [x] `GET /invoices/{id}/pdf`
 
 ---
 

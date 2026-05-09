@@ -1,12 +1,13 @@
 import math
 from datetime import date
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Invoice, LineItem
+from services.pdf import generate_invoice_pdf
 from utils import flash, render
 
 router = APIRouter(prefix="/invoices")
@@ -34,6 +35,19 @@ def list_invoices(request: Request, status: str | None = None, db: Session = Dep
         q = q.filter(Invoice.status == status)
     invoices = q.order_by(Invoice.created_at.desc()).all()
     return render(request, "invoices/list.html", invoices=invoices, current_status=status)
+
+
+@router.get("/{invoice_id}/pdf")
+def invoice_pdf(invoice_id: int, db: Session = Depends(get_db)):
+    invoice = db.get(Invoice, invoice_id)
+    if not invoice:
+        raise HTTPException(status_code=404)
+    pdf_bytes = generate_invoice_pdf(invoice)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{invoice.invoice_number}.pdf"'},
+    )
 
 
 @router.get("/{invoice_id}")

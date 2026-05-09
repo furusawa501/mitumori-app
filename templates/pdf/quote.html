@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<style>
+@page {
+  size: A4;
+  margin: 18mm 20mm 20mm 20mm;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Noto Sans CJK JP", "Noto Sans JP", sans-serif;
+  font-size: 10pt;
+  color: #111;
+  line-height: 1.6;
+}
+
+h1 {
+  text-align: center;
+  font-size: 20pt;
+  font-weight: bold;
+  letter-spacing: 0.2em;
+  margin-bottom: 18px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #111;
+}
+
+.layout {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.to-block {
+  flex: 1;
+}
+
+.company-name {
+  font-size: 14pt;
+  font-weight: bold;
+  border-bottom: 2px solid #111;
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+}
+
+.contact-name {
+  font-size: 9.5pt;
+  color: #444;
+  margin-left: 2px;
+}
+
+.meta-block {
+  text-align: right;
+  font-size: 9.5pt;
+  color: #333;
+  line-height: 1.8;
+}
+
+.meta-block .doc-number {
+  font-size: 11pt;
+  font-weight: bold;
+  color: #111;
+}
+
+.subject {
+  font-size: 12pt;
+  font-weight: bold;
+  margin-bottom: 14px;
+}
+
+/* 明細テーブル */
+table.items {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+  font-size: 9.5pt;
+}
+
+table.items thead th {
+  background: #f0f0f0;
+  border: 1px solid #bbb;
+  padding: 5px 7px;
+  text-align: left;
+  font-weight: bold;
+}
+
+table.items tbody td {
+  border: 1px solid #ccc;
+  padding: 5px 7px;
+  vertical-align: top;
+}
+
+table.items tbody tr:nth-child(even) td {
+  background: #fafafa;
+}
+
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+/* 合計 */
+.totals-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+}
+
+table.totals {
+  width: 220px;
+  font-size: 9.5pt;
+  border-collapse: collapse;
+}
+
+table.totals tr td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #ddd;
+}
+
+table.totals tr td:first-child {
+  color: #555;
+}
+
+table.totals tr td:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+table.totals tr.grand td {
+  font-size: 11pt;
+  font-weight: bold;
+  border-top: 2px solid #111;
+  border-bottom: 2px solid #111;
+  padding: 6px 6px;
+}
+
+/* 備考 */
+.notes-block {
+  border-top: 1px solid #ccc;
+  padding-top: 12px;
+  font-size: 9pt;
+}
+
+.notes-block h3 {
+  font-size: 9pt;
+  color: #666;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+.notes-block p {
+  white-space: pre-line;
+  color: #333;
+  line-height: 1.7;
+}
+</style>
+</head>
+<body>
+
+<h1>見　積　書</h1>
+
+<div class="layout">
+  <!-- 宛先 -->
+  <div class="to-block">
+    <div class="company-name">{{ quote.customer.company_name }}　御中</div>
+    <div class="contact-name">{{ quote.customer.contact_name }}　様</div>
+  </div>
+
+  <!-- 文書メタ情報 -->
+  <div class="meta-block">
+    <div class="doc-number">{{ quote.quote_number }}</div>
+    <div>発行日：{{ quote.issue_date.strftime("%Y年%m月%d日") }}</div>
+    {% if quote.valid_until %}
+    <div>有効期限：{{ quote.valid_until.strftime("%Y年%m月%d日") }}</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 件名 -->
+<div class="subject">{{ quote.title }}</div>
+
+<!-- 明細行 -->
+<table class="items">
+  <thead>
+    <tr>
+      <th style="width: 44%;">品目</th>
+      <th class="text-right" style="width: 9%;">数量</th>
+      <th class="text-center" style="width: 8%;">単位</th>
+      <th class="text-right" style="width: 18%;">単価</th>
+      <th class="text-right" style="width: 18%;">小計</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in quote.line_items | sort(attribute='sort_order') %}
+    <tr>
+      <td>{{ item.description }}</td>
+      <td class="text-right">{{ item.quantity }}</td>
+      <td class="text-center">{{ item.unit or "" }}</td>
+      <td class="text-right">¥{{ "{:,}".format(item.unit_price) }}</td>
+      <td class="text-right">¥{{ "{:,}".format(item.amount) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- 合計 -->
+<div class="totals-wrap">
+  <table class="totals">
+    <tr>
+      <td>小計</td>
+      <td>¥{{ "{:,}".format(quote.subtotal) }}</td>
+    </tr>
+    <tr>
+      <td>消費税（10%）</td>
+      <td>¥{{ "{:,}".format(quote.tax_amount) }}</td>
+    </tr>
+    <tr class="grand">
+      <td>合計（税込）</td>
+      <td>¥{{ "{:,}".format(quote.total) }}</td>
+    </tr>
+  </table>
+</div>
+
+<!-- 備考 -->
+{% if quote.notes %}
+<div class="notes-block">
+  <h3>備考・振込先</h3>
+  <p>{{ quote.notes }}</p>
+</div>
+{% endif %}
+
+</body>
+</html>

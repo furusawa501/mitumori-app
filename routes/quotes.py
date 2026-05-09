@@ -1,7 +1,7 @@
 import math
 from datetime import date
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -9,6 +9,7 @@ from database import get_db
 from models import Customer, LineItem, Quote
 from services.conversion import convert_quote_to_invoice
 from services.numbering import next_quote_number
+from services.pdf import generate_quote_pdf
 from utils import flash, render
 
 router = APIRouter(prefix="/quotes")
@@ -145,6 +146,19 @@ def change_status(
     db.commit()
     flash(request, f"ステータスを更新しました", "success")
     return RedirectResponse(f"/quotes/{quote_id}", status_code=303)
+
+
+@router.get("/{quote_id}/pdf")
+def quote_pdf(quote_id: int, db: Session = Depends(get_db)):
+    quote = db.get(Quote, quote_id)
+    if not quote:
+        raise HTTPException(status_code=404)
+    pdf_bytes = generate_quote_pdf(quote)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{quote.quote_number}.pdf"'},
+    )
 
 
 @router.post("/{quote_id}/convert")
