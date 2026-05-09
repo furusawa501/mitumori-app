@@ -8,6 +8,7 @@ nixPkgs = [
   "gobject-introspection",
   "shared-mime-info",
   "fontconfig",
+  "noto-fonts-cjk-sans",
 ]
 nixLibs = [
   "glib",
