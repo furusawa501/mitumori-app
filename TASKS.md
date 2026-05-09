@@ -17,17 +17,17 @@
 
 ## Phase 1 — 顧客管理
 
-- [ ] `routes/customers.py` を作成
-  - [ ] `GET  /customers` — 一覧
-  - [ ] `GET  /customers/new` — 登録フォーム
-  - [ ] `POST /customers` — 作成
-  - [ ] `GET  /customers/{id}` — 詳細
-  - [ ] `GET  /customers/{id}/edit` — 編集フォーム
-  - [ ] `POST /customers/{id}/edit` — 更新
-  - [ ] `POST /customers/{id}/delete` — 削除（関連データありは 400）
-- [ ] `templates/customers/list.html`
-- [ ] `templates/customers/form.html`（新規・編集共用）
-- [ ] `templates/customers/detail.html`
+- [x] `routes/customers.py` を作成
+  - [x] `GET  /customers` — 一覧
+  - [x] `GET  /customers/new` — 登録フォーム
+  - [x] `POST /customers` — 作成
+  - [x] `GET  /customers/{id}` — 詳細
+  - [x] `GET  /customers/{id}/edit` — 編集フォーム
+  - [x] `POST /customers/{id}/edit` — 更新
+  - [x] `POST /customers/{id}/delete` — 削除（関連データありは 400）
+- [x] `templates/customers/list.html`
+- [x] `templates/customers/form.html`（新規・編集共用）
+- [x] `templates/customers/detail.html`
 
 ---
 

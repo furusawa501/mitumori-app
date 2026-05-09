@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{% if customer %}顧客を編集{% else %}顧客を登録{% endif %}{% endblock %}
+{% block content %}
+
+<div class="max-w-lg">
+  <p class="text-sm text-gray-500 mb-1">
+    <a href="/customers" class="hover:underline">顧客一覧</a>
+    {% if customer %} &rsaquo; <a href="/customers/{{ customer.id }}" class="hover:underline">{{ customer.company_name }}</a>{% endif %}
+    &rsaquo; {% if customer %}編集{% else %}登録{% endif %}
+  </p>
+  <h1 class="text-xl font-bold mb-6">{% if customer %}顧客を編集{% else %}顧客を登録{% endif %}</h1>
+
+  <form method="post"
+    action="{% if customer %}/customers/{{ customer.id }}/edit{% else %}/customers{% endif %}"
+    class="space-y-4">
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        会社名 <span class="text-red-500">*</span>
+      </label>
+      <input type="text" name="company_name" required
+        value="{{ customer.company_name if customer else '' }}"
+        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        担当者名 <span class="text-red-500">*</span>
+      </label>
+      <input type="text" name="contact_name" required
+        value="{{ customer.contact_name if customer else '' }}"
+        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        メールアドレス <span class="text-red-500">*</span>
+      </label>
+      <input type="email" name="email" required
+        value="{{ customer.email if customer else '' }}"
+        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">電話番号</label>
+      <input type="tel" name="phone"
+        value="{{ customer.phone or '' if customer else '' }}"
+        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">住所</label>
+      <textarea name="address" rows="3"
+        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ customer.address or '' if customer else '' }}</textarea>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">メモ（社内用）</label>
+      <textarea name="notes" rows="2"
+        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ customer.notes or '' if customer else '' }}</textarea>
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button type="submit"
+        class="bg-blue-600 text-white text-sm px-6 py-2 rounded hover:bg-blue-700">
+        {% if customer %}更新{% else %}登録{% endif %}
+      </button>
+      <a href="{% if customer %}/customers/{{ customer.id }}{% else %}/customers{% endif %}"
+        class="text-sm px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
+        キャンセル
+      </a>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}

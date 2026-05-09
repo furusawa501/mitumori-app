@@ -28,9 +28,6 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# ルーターはPhase 1以降で順次登録する
-# from routes import customers, quotes, invoices, dashboard
-# app.include_router(dashboard.router)
-# app.include_router(customers.router)
-# app.include_router(quotes.router)
-# app.include_router(invoices.router)
+from routes import customers
+
+app.include_router(customers.router)
