@@ -89,11 +89,11 @@
 
 ## Phase 5 — ダッシュボード
 
-- [ ] `routes/dashboard.py` を作成（`GET /`）
+- [x] `routes/dashboard.py` を作成（`GET /`）
   - `sent` 状態の見積書件数・合計金額
   - `sent` + `overdue` 状態の請求書件数・合計金額
   - 直近5件の見積書・請求書
-- [ ] `templates/dashboard.html`
+- [x] `templates/dashboard.html`
 
 ---
 

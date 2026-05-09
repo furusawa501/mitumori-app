@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% from "macros.html" import quote_badge, invoice_badge %}
+{% block title %}ダッシュボード{% endblock %}
+{% block content %}
+
+<h1 class="text-xl font-bold mb-6">ダッシュボード</h1>
+
+<!-- KPI カード -->
+<div class="grid grid-cols-2 gap-4 mb-8">
+  <div class="bg-white border border-gray-200 rounded p-5">
+    <p class="text-sm text-gray-500 mb-3">未対応の見積書</p>
+    <div class="flex items-baseline gap-2 mb-3">
+      <span class="text-3xl font-bold">{{ sent_quotes_count }}</span>
+      <span class="text-gray-500 text-sm">件</span>
+      <span class="ml-auto text-lg font-semibold text-gray-800">
+        ¥{{ "{:,}".format(sent_quotes_total) }}
+      </span>
+    </div>
+    <a href="/quotes?status=sent" class="text-xs text-blue-600 hover:underline">
+      一覧を見る →
+    </a>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded p-5">
+    <p class="text-sm text-gray-500 mb-3">入金待ちの請求書</p>
+    <div class="flex items-baseline gap-2 mb-3">
+      <span class="text-3xl font-bold">{{ pending_invoices_count }}</span>
+      <span class="text-gray-500 text-sm">件</span>
+      <span class="ml-auto text-lg font-semibold text-gray-800">
+        ¥{{ "{:,}".format(pending_invoices_total) }}
+      </span>
+    </div>
+    <a href="/invoices?status=sent" class="text-xs text-blue-600 hover:underline">
+      一覧を見る →
+    </a>
+  </div>
+</div>
+
+<!-- 最近の見積書 -->
+<h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">最近の見積書</h2>
+{% if recent_quotes %}
+<div class="bg-white border border-gray-200 rounded overflow-hidden mb-8">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-500 text-left">
+      <tr>
+        <th class="px-4 py-3 font-medium">見積番号</th>
+        <th class="px-4 py-3 font-medium">顧客</th>
+        <th class="px-4 py-3 font-medium">件名</th>
+        <th class="px-4 py-3 font-medium">ステータス</th>
+        <th class="px-4 py-3 font-medium text-right">合計（税込）</th>
+        <th class="px-4 py-3 font-medium">発行日</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for q in recent_quotes %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">
+          <a href="/quotes/{{ q.id }}" class="text-blue-600 hover:underline font-medium">{{ q.quote_number }}</a>
+        </td>
+        <td class="px-4 py-3 text-gray-700">{{ q.customer.company_name }}</td>
+        <td class="px-4 py-3 text-gray-700">{{ q.title }}</td>
+        <td class="px-4 py-3">{{ quote_badge(q.status) }}</td>
+        <td class="px-4 py-3 text-right font-medium">¥{{ "{:,}".format(q.total) }}</td>
+        <td class="px-4 py-3 text-gray-500">{{ q.issue_date.strftime("%Y/%m/%d") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-sm text-gray-400 mb-8 py-6 bg-white border border-gray-200 rounded text-center">
+  見積書がありません。
+  <a href="/quotes/new" class="text-blue-600 hover:underline ml-1">作成する →</a>
+</div>
+{% endif %}
+
+<!-- 最近の請求書 -->
+<h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">最近の請求書</h2>
+{% if recent_invoices %}
+<div class="bg-white border border-gray-200 rounded overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-500 text-left">
+      <tr>
+        <th class="px-4 py-3 font-medium">請求番号</th>
+        <th class="px-4 py-3 font-medium">顧客</th>
+        <th class="px-4 py-3 font-medium">件名</th>
+        <th class="px-4 py-3 font-medium">ステータス</th>
+        <th class="px-4 py-3 font-medium text-right">合計（税込）</th>
+        <th class="px-4 py-3 font-medium">発行日</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for inv in recent_invoices %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">
+          <a href="/invoices/{{ inv.id }}" class="text-blue-600 hover:underline font-medium">{{ inv.invoice_number }}</a>
+        </td>
+        <td class="px-4 py-3 text-gray-700">{{ inv.customer.company_name }}</td>
+        <td class="px-4 py-3 text-gray-700">{{ inv.title }}</td>
+        <td class="px-4 py-3">{{ invoice_badge(inv.status) }}</td>
+        <td class="px-4 py-3 text-right font-medium">¥{{ "{:,}".format(inv.total) }}</td>
+        <td class="px-4 py-3 text-gray-500">{{ inv.issue_date.strftime("%Y/%m/%d") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-sm text-gray-400 py-6 bg-white border border-gray-200 rounded text-center">
+  請求書がありません。見積書を承認済みにして変換すると作成できます。
+</div>
+{% endif %}
+
+{% endblock %}

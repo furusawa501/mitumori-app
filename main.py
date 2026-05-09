@@ -28,8 +28,9 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-from routes import customers, invoices, quotes
+from routes import customers, dashboard, invoices, quotes
 
+app.include_router(dashboard.router)
 app.include_router(customers.router)
 app.include_router(quotes.router)
 app.include_router(invoices.router)
