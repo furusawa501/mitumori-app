@@ -54,24 +54,24 @@
 
 ## Phase 3 — 請求書（変換）
 
-- [ ] `services/conversion.py` を作成（`convert_quote_to_invoice`）
+- [x] `services/conversion.py` を作成（`convert_quote_to_invoice`）
   - `Quote.status` を `converted` に更新
   - 明細行・顧客・金額をコピーして `Invoice`（`status=draft`）を作成
   - `Invoice.quote_id` に元の `Quote.id` を記録
-- [ ] `routes/quotes.py` に変換エンドポイント追加
-  - [ ] `POST /quotes/{id}/convert` — 請求書に変換（`accepted` のみ）
-- [ ] `routes/invoices.py` を作成
-  - [ ] `GET  /invoices` — 一覧（`?status=` フィルタ付き）
-  - [ ] `GET  /invoices/{id}` — 詳細
-  - [ ] `GET  /invoices/{id}/edit` — 編集フォーム（`draft` のみ表示）
-  - [ ] `POST /invoices/{id}` — 更新（`draft` のみ、金額再計算）
-  - [ ] `POST /invoices/{id}/status` — ステータス変更（`send` / `pay` / `overdue`）
-  - [ ] `POST /invoices/{id}/items` — 明細行追加
-  - [ ] `POST /invoices/{id}/items/{item_id}` — 明細行更新
-  - [ ] `POST /invoices/{id}/items/{item_id}/delete` — 明細行削除
-- [ ] `templates/invoices/list.html`
-- [ ] `templates/invoices/detail.html`（ステータスに応じたボタン切り替え、変換元リンク）
-- [ ] `templates/invoices/form.html`（編集用）
+- [x] `routes/quotes.py` に変換エンドポイント追加
+  - [x] `POST /quotes/{id}/convert` — 請求書に変換（`accepted` のみ）
+- [x] `routes/invoices.py` を作成
+  - [x] `GET  /invoices` — 一覧（`?status=` フィルタ付き）
+  - [x] `GET  /invoices/{id}` — 詳細
+  - [x] `GET  /invoices/{id}/edit` — 編集フォーム（`draft` のみ表示）
+  - [x] `POST /invoices/{id}` — 更新（`draft` のみ、金額再計算）
+  - [x] `POST /invoices/{id}/status` — ステータス変更（`send` / `pay` / `overdue`）
+  - [x] `POST /invoices/{id}/items` — 明細行追加
+  - [x] `POST /invoices/{id}/items/{item_id}` — 明細行更新
+  - [x] `POST /invoices/{id}/items/{item_id}/delete` — 明細行削除
+- [x] `templates/invoices/list.html`
+- [x] `templates/invoices/detail.html`（ステータスに応じたボタン切り替え、変換元リンク）
+- [x] `templates/invoices/form.html`（編集用）
 
 ---
 

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Customer, LineItem, Quote
+from services.conversion import convert_quote_to_invoice
 from services.numbering import next_quote_number
 from utils import flash, render
 
@@ -144,6 +145,19 @@ def change_status(
     db.commit()
     flash(request, f"ステータスを更新しました", "success")
     return RedirectResponse(f"/quotes/{quote_id}", status_code=303)
+
+
+@router.post("/{quote_id}/convert")
+def convert_quote(quote_id: int, request: Request, db: Session = Depends(get_db)):
+    quote = db.get(Quote, quote_id)
+    if not quote:
+        raise HTTPException(status_code=404)
+    if quote.status != "accepted":
+        flash(request, "承認済みの見積書のみ変換できます", "error")
+        return RedirectResponse(f"/quotes/{quote_id}", status_code=303)
+    invoice = convert_quote_to_invoice(db, quote)
+    flash(request, f"請求書 {invoice.invoice_number} を作成しました", "success")
+    return RedirectResponse(f"/invoices/{invoice.id}", status_code=303)
 
 
 @router.post("/{quote_id}/items")

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% from "macros.html" import invoice_badge %}
+{% block title %}{{ invoice.invoice_number }}{% endblock %}
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <p class="text-sm text-gray-500 mb-1">
+      <a href="/invoices" class="hover:underline">請求書一覧</a> &rsaquo; 詳細
+    </p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-xl font-bold">{{ invoice.invoice_number }}</h1>
+      {{ invoice_badge(invoice.status) }}
+    </div>
+    <p class="text-gray-600 mt-1">{{ invoice.title }}</p>
+    {% if invoice.quote %}
+    <p class="text-sm text-gray-400 mt-0.5">
+      変換元:
+      <a href="/quotes/{{ invoice.quote_id }}" class="text-blue-500 hover:underline">
+        {{ invoice.quote.quote_number }}
+      </a>
+    </p>
+    {% endif %}
+  </div>
+
+  <!-- アクションボタン -->
+  <div class="flex flex-wrap gap-2 justify-end">
+    <a href="/invoices/{{ invoice.id }}/pdf"
+      class="text-sm px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
+      PDF
+    </a>
+
+    {% if invoice.status == 'draft' %}
+    <a href="/invoices/{{ invoice.id }}/edit"
+      class="text-sm px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
+      編集
+    </a>
+    <form method="post" action="/invoices/{{ invoice.id }}/status">
+      <input type="hidden" name="action" value="send">
+      <button type="submit" class="text-sm px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
+        送付済みにする
+      </button>
+    </form>
+
+    {% elif invoice.status == 'sent' %}
+    <form method="post" action="/invoices/{{ invoice.id }}/status">
+      <input type="hidden" name="action" value="overdue">
+      <button type="submit" class="text-sm px-4 py-2 rounded border border-yellow-300 text-yellow-700 hover:bg-yellow-50">
+        期日超過にする
+      </button>
+    </form>
+    <form method="post" action="/invoices/{{ invoice.id }}/status">
+      <input type="hidden" name="action" value="pay">
+      <button type="submit" class="text-sm px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">
+        入金済みにする
+      </button>
+    </form>
+
+    {% elif invoice.status == 'overdue' %}
+    <form method="post" action="/invoices/{{ invoice.id }}/status">
+      <input type="hidden" name="action" value="pay">
+      <button type="submit" class="text-sm px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">
+        入金済みにする
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 請求書情報 -->
+<div class="bg-white border border-gray-200 rounded p-5 mb-6">
+  <dl class="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+    <div>
+      <dt class="text-gray-500 mb-0.5">顧客</dt>
+      <dd><a href="/customers/{{ invoice.customer_id }}" class="text-blue-600 hover:underline">{{ invoice.customer.company_name }}</a></dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 mb-0.5">担当者</dt>
+      <dd>{{ invoice.customer.contact_name }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 mb-0.5">発行日</dt>
+      <dd>{{ invoice.issue_date.strftime("%Y/%m/%d") }}</dd>
+    </div>
+    <div>
+      <dt class="text-gray-500 mb-0.5">支払期限</dt>
+      <dd class="{% if invoice.status == 'overdue' %}text-red-600 font-medium{% endif %}">
+        {{ invoice.due_date.strftime("%Y/%m/%d") if invoice.due_date else "—" }}
+      </dd>
+    </div>
+    {% if invoice.notes %}
+    <div class="col-span-2">
+      <dt class="text-gray-500 mb-0.5">備考・振込先</dt>
+      <dd class="whitespace-pre-line text-gray-700">{{ invoice.notes }}</dd>
+    </div>
+    {% endif %}
+  </dl>
+</div>
+
+<!-- 明細行 -->
+<h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">明細行</h2>
+{% if invoice.line_items %}
+<div class="bg-white border border-gray-200 rounded overflow-hidden mb-4">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-500 text-left">
+      <tr>
+        <th class="px-4 py-3 font-medium w-8">#</th>
+        <th class="px-4 py-3 font-medium">品目</th>
+        <th class="px-4 py-3 font-medium text-right">数量</th>
+        <th class="px-4 py-3 font-medium">単位</th>
+        <th class="px-4 py-3 font-medium text-right">単価</th>
+        <th class="px-4 py-3 font-medium text-right">小計</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for item in invoice.line_items | sort(attribute='sort_order') %}
+      <tr>
+        <td class="px-4 py-3 text-gray-400">{{ item.sort_order }}</td>
+        <td class="px-4 py-3">{{ item.description }}</td>
+        <td class="px-4 py-3 text-right">{{ item.quantity }}</td>
+        <td class="px-4 py-3 text-gray-500">{{ item.unit or "" }}</td>
+        <td class="px-4 py-3 text-right">¥{{ "{:,}".format(item.unit_price) }}</td>
+        <td class="px-4 py-3 text-right font-medium">¥{{ "{:,}".format(item.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-sm text-gray-400 mb-4">明細行がありません</p>
+{% endif %}
+
+<!-- 金額合計 -->
+<div class="flex justify-end">
+  <div class="text-sm space-y-1 w-56">
+    <div class="flex justify-between">
+      <span class="text-gray-500">小計</span>
+      <span>¥{{ "{:,}".format(invoice.subtotal) }}</span>
+    </div>
+    <div class="flex justify-between">
+      <span class="text-gray-500">消費税（10%）</span>
+      <span>¥{{ "{:,}".format(invoice.tax_amount) }}</span>
+    </div>
+    <div class="flex justify-between font-bold text-base border-t border-gray-200 pt-1 mt-1">
+      <span>合計（税込）</span>
+      <span>¥{{ "{:,}".format(invoice.total) }}</span>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
