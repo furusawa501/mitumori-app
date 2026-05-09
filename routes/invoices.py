@@ -5,8 +5,9 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from sqlalchemy import case
 from database import get_db
-from models import Invoice, LineItem
+from models import Customer, Invoice, LineItem
 from services.pdf import generate_invoice_pdf
 from utils import flash, render
 
@@ -28,13 +29,37 @@ def _recalc_totals(invoice: Invoice) -> None:
     invoice.total = invoice.subtotal + invoice.tax_amount
 
 
+_INVOICE_STATUS_ORDER = case(
+    {"draft": 1, "sent": 2, "overdue": 3, "paid": 4},
+    value=Invoice.status,
+)
+
+_INVOICE_SORT_COLS = {
+    "customer":   Customer.company_name,
+    "title":      Invoice.title,
+    "status":     _INVOICE_STATUS_ORDER,
+    "total":      Invoice.total,
+    "issue_date": Invoice.issue_date,
+    "due_date":   Invoice.due_date,
+}
+
 @router.get("")
-def list_invoices(request: Request, status: str | None = None, db: Session = Depends(get_db)):
-    q = db.query(Invoice)
+def list_invoices(
+    request: Request,
+    status: str | None = None,
+    sort: str = "issue_date",
+    order: str = "desc",
+    db: Session = Depends(get_db),
+):
+    q = db.query(Invoice).join(Customer)
     if status:
         q = q.filter(Invoice.status == status)
-    invoices = q.order_by(Invoice.created_at.desc()).all()
-    return render(request, "invoices/list.html", invoices=invoices, current_status=status)
+    col = _INVOICE_SORT_COLS.get(sort, Invoice.issue_date)
+    q = q.order_by(col.asc() if order == "asc" else col.desc())
+    invoices = q.all()
+    return render(request, "invoices/list.html",
+                  invoices=invoices, current_status=status,
+                  current_sort=sort, current_order=order)
 
 
 @router.get("/{invoice_id}/pdf")

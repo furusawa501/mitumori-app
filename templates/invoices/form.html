@@ -2,56 +2,57 @@
 {% block title %}請求書を編集{% endblock %}
 {% block content %}
 
-<p class="text-sm text-gray-500 mb-1">
-  <a href="/invoices" class="hover:underline">請求書一覧</a>
-  &rsaquo; <a href="/invoices/{{ invoice.id }}" class="hover:underline">{{ invoice.invoice_number }}</a>
-  &rsaquo; 編集
+<p class="text-sm text-slate-500 mb-1">
+  <a href="/invoices" class="hover:text-slate-700">請求書一覧</a>
+  <span class="text-slate-400">&rsaquo;</span>
+  <a href="/invoices/{{ invoice.id }}" class="hover:text-slate-700">{{ invoice.invoice_number }}</a>
+  <span class="text-slate-400">&rsaquo;</span> 編集
 </p>
-<h1 class="text-xl font-bold mb-6">請求書を編集</h1>
+<h1 class="text-2xl font-bold text-slate-800 mb-6">請求書を編集</h1>
 
 <!-- 基本情報フォーム -->
-<div class="bg-white border border-gray-200 rounded p-5 mb-8 max-w-2xl">
-  <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">基本情報</h2>
+<div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8 max-w-2xl">
+  <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-5">基本情報</h2>
   <form method="post" action="/invoices/{{ invoice.id }}" class="space-y-4">
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">
+      <label class="block text-sm font-medium text-slate-700 mb-1">
         件名 <span class="text-red-500">*</span>
       </label>
       <input type="text" name="title" required value="{{ invoice.title }}"
-        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
+        <label class="block text-sm font-medium text-slate-700 mb-1">
           発行日 <span class="text-red-500">*</span>
         </label>
         <input type="date" name="issue_date" required
           value="{{ invoice.issue_date.isoformat() }}"
-          class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">支払期限</label>
+        <label class="block text-sm font-medium text-slate-700 mb-1">支払期限</label>
         <input type="date" name="due_date"
           value="{{ invoice.due_date.isoformat() if invoice.due_date else '' }}"
-          class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
       </div>
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">備考・振込先</label>
+      <label class="block text-sm font-medium text-slate-700 mb-1">備考・振込先</label>
       <textarea name="notes" rows="3"
-        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ invoice.notes or '' }}</textarea>
+        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">{{ invoice.notes or '' }}</textarea>
     </div>
 
     <div class="flex gap-3 pt-1">
       <button type="submit"
-        class="bg-blue-600 text-white text-sm px-6 py-2 rounded hover:bg-blue-700">
+        class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors">
         保存
       </button>
       <a href="/invoices/{{ invoice.id }}"
-        class="text-sm px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
+        class="border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
         キャンセル
       </a>
     </div>
@@ -59,91 +60,98 @@
 </div>
 
 <!-- 明細行セクション -->
-<div class="mb-8">
-  <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">明細行</h2>
+<div class="mb-8 max-w-4xl">
+  <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">明細行</h2>
 
   <!-- ヘッダー行 -->
-  <div class="hidden md:grid text-xs text-gray-500 px-2 mb-1"
-    style="grid-template-columns: 1fr 70px 55px 95px 100px 90px">
+  <div class="hidden md:grid text-xs text-slate-500 px-2 mb-1"
+    style="grid-template-columns: 1fr 70px 55px 95px 100px 90px 60px">
     <span>品目</span>
     <span class="text-right">数量</span>
     <span class="pl-1">単位</span>
     <span class="text-right">単価（円）</span>
     <span class="text-right">小計</span>
     <span></span>
+    <span></span>
   </div>
 
-  <!-- 既存明細行 -->
-  {% for item in invoice.line_items | sort(attribute='sort_order') %}
-  <div class="flex gap-2 items-center py-1.5 border-b border-gray-100">
-    <form method="post" action="/invoices/{{ invoice.id }}/items/{{ item.id }}"
-      class="flex gap-2 items-center flex-1">
-      <input type="hidden" name="sort_order" value="{{ item.sort_order }}">
-      <input type="text" name="description" value="{{ item.description }}" required
-        class="flex-1 border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-      <input type="number" name="quantity" value="{{ item.quantity }}" step="any" min="0" required
-        class="w-[70px] border border-gray-300 rounded px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
-      <input type="text" name="unit" value="{{ item.unit or '' }}" placeholder="式"
-        class="w-[55px] border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-      <input type="number" name="unit_price" value="{{ item.unit_price }}" min="0" required
-        class="w-[95px] border border-gray-300 rounded px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
-      <span class="w-[100px] text-right text-sm text-gray-700">¥{{ "{:,}".format(item.amount) }}</span>
-      <button type="submit"
-        class="text-xs px-2 py-1.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 whitespace-nowrap">
-        更新
-      </button>
-    </form>
-    <form method="post" action="/invoices/{{ invoice.id }}/items/{{ item.id }}/delete"
-      onsubmit="return confirm('この明細行を削除しますか？')">
-      <button type="submit"
-        class="text-xs px-2 py-1.5 rounded border border-red-200 text-red-500 hover:bg-red-50">
-        削除
-      </button>
-    </form>
-  </div>
-  {% endfor %}
+  <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+   <div class="min-w-[620px]">
+    <!-- 既存明細行 -->
+    {% for item in invoice.line_items | sort(attribute='sort_order') %}
+    <div class="flex gap-2 items-center px-3 py-2 border-b border-slate-100">
+      <form method="post" action="/invoices/{{ invoice.id }}/items/{{ item.id }}"
+        class="flex gap-2 items-center flex-1">
+        <input type="hidden" name="sort_order" value="{{ item.sort_order }}">
+        <input type="text" name="description" value="{{ item.description }}" required
+          class="flex-1 border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        <input type="number" name="quantity" value="{{ item.quantity }}" step="any" min="0" required
+          class="w-[70px] border border-slate-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        <input type="text" name="unit" value="{{ item.unit or '' }}" placeholder="式"
+          class="w-[55px] border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        <input type="number" name="unit_price" value="{{ item.unit_price }}" min="0" required
+          class="w-[95px] border border-slate-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        <span class="w-[100px] text-right text-sm text-slate-700">¥{{ "{:,}".format(item.amount) }}</span>
+        <button type="submit"
+          class="text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 whitespace-nowrap transition-colors">
+          更新
+        </button>
+      </form>
+      <form method="post" action="/invoices/{{ invoice.id }}/items/{{ item.id }}/delete"
+        onsubmit="return confirm('この明細行を削除しますか？')">
+        <button type="submit"
+          class="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
+          削除
+        </button>
+      </form>
+    </div>
+    {% endfor %}
 
-  <!-- 明細行追加フォーム -->
-  <form method="post" action="/invoices/{{ invoice.id }}/items"
-    class="flex gap-2 items-center py-2 mt-1">
-    <input type="hidden" name="sort_order" value="{{ invoice.line_items | length + 1 }}">
-    <input type="text" name="description" required placeholder="品目名"
-      class="flex-1 border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-    <input type="number" name="quantity" step="any" min="0" required value="1"
-      class="w-[70px] border border-gray-300 rounded px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
-    <input type="text" name="unit" placeholder="式"
-      class="w-[55px] border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-    <input type="number" name="unit_price" min="0" required value="0"
-      class="w-[95px] border border-gray-300 rounded px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
-    <span class="w-[100px]"></span>
-    <button type="submit"
-      class="text-xs px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">
-      + 追加
-    </button>
-    <span class="text-transparent text-xs px-2 py-1.5">削除</span>
-  </form>
+    <!-- 明細行追加フォーム -->
+    <form method="post" action="/invoices/{{ invoice.id }}/items"
+      class="flex gap-2 items-center px-3 py-2 bg-slate-50">
+      <input type="hidden" name="sort_order" value="{{ invoice.line_items | length + 1 }}">
+      <input type="text" name="description" required placeholder="品目名"
+        class="flex-1 border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+      <input type="number" name="quantity" step="any" min="0" required value="1"
+        class="w-[70px] border border-slate-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-indigo-500">
+      <input type="text" name="unit" placeholder="式"
+        class="w-[55px] border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+      <input type="number" name="unit_price" min="0" required value="0"
+        class="w-[95px] border border-slate-300 rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-1 focus:ring-indigo-500">
+      <span class="w-[100px]"></span>
+      <button type="submit"
+        class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white whitespace-nowrap transition-colors">
+        + 追加
+      </button>
+      <span class="text-transparent text-xs px-2.5 py-1.5">削除</span>
+    </form>
+   </div><!-- /min-w -->
+  </div>
 </div>
 
 <!-- 金額合計 -->
-<div class="flex justify-end mb-8">
-  <div class="text-sm space-y-1 w-56">
-    <div class="flex justify-between">
-      <span class="text-gray-500">小計</span>
-      <span>¥{{ "{:,}".format(invoice.subtotal) }}</span>
-    </div>
-    <div class="flex justify-between">
-      <span class="text-gray-500">消費税（10%）</span>
-      <span>¥{{ "{:,}".format(invoice.tax_amount) }}</span>
-    </div>
-    <div class="flex justify-between font-bold text-base border-t border-gray-200 pt-1 mt-1">
-      <span>合計（税込）</span>
-      <span>¥{{ "{:,}".format(invoice.total) }}</span>
+<div class="flex justify-end mb-8 max-w-4xl">
+  <div class="bg-white rounded-lg border border-slate-200 p-4 w-60">
+    <div class="text-sm space-y-2">
+      <div class="flex justify-between text-slate-600">
+        <span>小計</span>
+        <span>¥{{ "{:,}".format(invoice.subtotal) }}</span>
+      </div>
+      <div class="flex justify-between text-slate-600">
+        <span>消費税（10%）</span>
+        <span>¥{{ "{:,}".format(invoice.tax_amount) }}</span>
+      </div>
+      <div class="flex justify-between font-bold text-base border-t border-slate-200 pt-2 mt-2 text-slate-800">
+        <span>合計（税込）</span>
+        <span>¥{{ "{:,}".format(invoice.total) }}</span>
+      </div>
     </div>
   </div>
 </div>
 
 <a href="/invoices/{{ invoice.id }}"
-  class="text-sm px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
+  class="border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
   詳細画面へ戻る
 </a>
 

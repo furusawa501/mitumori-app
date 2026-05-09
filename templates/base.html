@@ -6,30 +6,64 @@
   <title>{% block title %}見積・請求管理{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 text-gray-900 min-h-screen">
+<body class="bg-slate-50 text-slate-900 min-h-screen">
 
   <!-- ナビゲーション -->
-  <nav class="bg-white border-b border-gray-200">
-    <div class="max-w-5xl mx-auto px-4 flex items-center h-14 gap-6">
-      <a href="/" class="font-bold text-gray-800 text-lg">見積・請求管理</a>
-      <a href="/" class="text-sm text-gray-600 hover:text-gray-900">ダッシュボード</a>
-      <a href="/customers" class="text-sm text-gray-600 hover:text-gray-900">顧客</a>
-      <a href="/quotes" class="text-sm text-gray-600 hover:text-gray-900">見積書</a>
-      <a href="/invoices" class="text-sm text-gray-600 hover:text-gray-900">請求書</a>
+  {% set path = request.url.path %}
+  {% set nav_items = [
+    ("/", "ダッシュボード"),
+    ("/customers", "顧客"),
+    ("/quotes", "見積書"),
+    ("/invoices", "請求書"),
+  ] %}
+  <nav class="bg-slate-800 shadow sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6">
+      <div class="flex items-center justify-between h-14">
+        <span class="text-slate-400 font-semibold text-sm tracking-wide select-none">見積・請求管理</span>
+
+        <!-- デスクトップリンク -->
+        <div class="hidden md:flex items-center gap-1">
+          {% for href, label in nav_items %}
+          {% set active = (href == "/" and path == "/") or (href != "/" and path.startswith(href)) %}
+          <a href="{{ href }}" class="text-sm px-3 py-1.5 rounded transition-colors
+            {% if active %}text-white bg-slate-600{% else %}text-slate-300 hover:text-white hover:bg-slate-700{% endif %}">
+            {{ label }}
+          </a>
+          {% endfor %}
+        </div>
+
+        <!-- ハンバーガーボタン（モバイルのみ） -->
+        <button id="nav-toggle" class="md:hidden text-slate-300 hover:text-white p-1.5 rounded transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- モバイルメニュー -->
+      <div id="nav-menu" class="hidden md:hidden border-t border-slate-700 py-2 space-y-0.5 pb-3">
+        {% for href, label in nav_items %}
+        {% set active = (href == "/" and path == "/") or (href != "/" and path.startswith(href)) %}
+        <a href="{{ href }}" class="block text-sm px-3 py-2 rounded transition-colors
+          {% if active %}text-white bg-slate-600{% else %}text-slate-300 hover:text-white hover:bg-slate-700{% endif %}">
+          {{ label }}
+        </a>
+        {% endfor %}
+      </div>
     </div>
   </nav>
 
   <!-- フラッシュメッセージ -->
   {% if messages %}
-  <div class="max-w-5xl mx-auto px-4 mt-4 space-y-2">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 mt-5 space-y-2">
     {% for msg in messages %}
     {% set colors = {
-      "success": "bg-green-50 border-green-300 text-green-800",
+      "success": "bg-emerald-50 border-emerald-300 text-emerald-800",
       "error":   "bg-red-50 border-red-300 text-red-800",
-      "warning": "bg-yellow-50 border-yellow-300 text-yellow-800",
+      "warning": "bg-amber-50 border-amber-300 text-amber-800",
       "info":    "bg-blue-50 border-blue-300 text-blue-800"
     } %}
-    <div class="border rounded px-4 py-2 text-sm {{ colors.get(msg.category, colors['info']) }}">
+    <div class="border rounded-lg px-4 py-2.5 text-sm {{ colors.get(msg.category, colors['info']) }}">
       {{ msg.text }}
     </div>
     {% endfor %}
@@ -37,9 +71,14 @@
   {% endif %}
 
   <!-- メインコンテンツ -->
-  <main class="max-w-5xl mx-auto px-4 py-6">
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
     {% block content %}{% endblock %}
   </main>
 
+  <script>
+    document.getElementById('nav-toggle').addEventListener('click', function() {
+      document.getElementById('nav-menu').classList.toggle('hidden');
+    });
+  </script>
 </body>
 </html>

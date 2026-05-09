@@ -4,11 +4,11 @@
 {% block content %}
 
 <div class="flex items-center justify-between mb-6">
-  <h1 class="text-xl font-bold">請求書一覧</h1>
+  <h1 class="text-2xl font-bold text-slate-800">請求書一覧</h1>
 </div>
 
 <!-- ステータスフィルタ -->
-<div class="flex gap-1 mb-4 text-sm">
+<div class="flex flex-wrap gap-1.5 mb-5 text-sm">
   {% set filters = [
     (none, "すべて"),
     ("draft", "下書き"),
@@ -18,43 +18,60 @@
   ] %}
   {% for val, label in filters %}
   <a href="/invoices{% if val %}?status={{ val }}{% endif %}"
-    class="px-3 py-1 rounded {% if current_status == val %}bg-blue-600 text-white{% else %}bg-white border border-gray-200 text-gray-600 hover:bg-gray-50{% endif %}">
+    class="px-3 py-1.5 rounded-lg font-medium transition-colors
+      {% if current_status == val %}bg-indigo-600 text-white{% else %}bg-white border border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">
     {{ label }}
   </a>
   {% endfor %}
 </div>
 
+{% macro sort_link(col, label, align_right=false) %}
+{% set next_order = "asc" if (current_sort == col and current_order == "desc") else "desc" %}
+{% set base = "/invoices?" %}
+{% if current_status %}{% set base = base ~ "status=" ~ current_status ~ "&" %}{% endif %}
+<a href="{{ base }}sort={{ col }}&order={{ next_order }}"
+   class="flex items-center gap-1 hover:text-slate-700 transition-colors {% if align_right %}justify-end{% endif %}
+     {% if current_sort == col %}text-slate-700{% else %}text-slate-500{% endif %}">
+  {{ label }}
+  {% if current_sort == col %}
+    <span class="text-indigo-500">{% if current_order == "asc" %}▲{% else %}▼{% endif %}</span>
+  {% else %}
+    <span class="text-slate-300">▼</span>
+  {% endif %}
+</a>
+{% endmacro %}
+
 {% if invoices %}
-<div class="bg-white border border-gray-200 rounded overflow-hidden">
-  <table class="w-full text-sm">
-    <thead class="bg-gray-50 text-gray-500 text-left">
+<div class="overflow-x-auto rounded-lg shadow-sm border border-slate-200 bg-white">
+  <table class="w-full text-sm min-w-[660px]">
+    <thead class="bg-slate-50 text-slate-500 text-left border-b border-slate-200">
       <tr>
-        <th class="px-4 py-3 font-medium">請求番号</th>
-        <th class="px-4 py-3 font-medium">顧客</th>
-        <th class="px-4 py-3 font-medium">件名</th>
-        <th class="px-4 py-3 font-medium">ステータス</th>
-        <th class="px-4 py-3 font-medium text-right">合計（税込）</th>
-        <th class="px-4 py-3 font-medium">発行日</th>
-        <th class="px-4 py-3 font-medium">支払期限</th>
+        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide">請求番号</th>
+        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide">{{ sort_link("customer", "顧客") }}</th>
+        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide">{{ sort_link("title", "件名") }}</th>
+        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide">{{ sort_link("status", "ステータス") }}</th>
+        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-right">{{ sort_link("total", "合計（税込）", true) }}</th>
+        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide">{{ sort_link("issue_date", "発行日") }}</th>
+        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide">{{ sort_link("due_date", "支払期限") }}</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-gray-100">
+    <tbody class="divide-y divide-slate-100">
       {% for inv in invoices %}
-      <tr class="hover:bg-gray-50">
+      <tr class="hover:bg-slate-50 transition-colors">
         <td class="px-4 py-3">
-          <a href="/invoices/{{ inv.id }}" class="text-blue-600 hover:underline font-medium">{{ inv.invoice_number }}</a>
+          <a href="/invoices/{{ inv.id }}" class="text-indigo-600 hover:text-indigo-800 font-medium">{{ inv.invoice_number }}</a>
         </td>
-        <td class="px-4 py-3 text-gray-700">{{ inv.customer.company_name }}</td>
-        <td class="px-4 py-3 text-gray-700">{{ inv.title }}</td>
+        <td class="px-4 py-3 text-slate-700">{{ inv.customer.company_name }}</td>
+        <td class="px-4 py-3 text-slate-700">{{ inv.title }}</td>
         <td class="px-4 py-3">{{ invoice_badge(inv.status) }}</td>
-        <td class="px-4 py-3 text-right font-medium">¥{{ "{:,}".format(inv.total) }}</td>
-        <td class="px-4 py-3 text-gray-500">{{ inv.issue_date.strftime("%Y/%m/%d") }}</td>
-        <td class="px-4 py-3 text-gray-500">
+        <td class="px-4 py-3 text-right font-medium text-slate-800">¥{{ "{:,}".format(inv.total) }}</td>
+        <td class="px-4 py-3 text-slate-500">{{ inv.issue_date.strftime("%Y/%m/%d") }}</td>
+        <td class="px-4 py-3">
           {% if inv.due_date %}
-            <span class="{% if inv.status == 'overdue' %}text-red-600 font-medium{% endif %}">
+            <span class="{% if inv.status == 'overdue' %}text-red-600 font-medium{% else %}text-slate-500{% endif %}">
               {{ inv.due_date.strftime("%Y/%m/%d") }}
             </span>
-          {% else %}—{% endif %}
+          {% else %}<span class="text-slate-400">—</span>{% endif %}
         </td>
       </tr>
       {% endfor %}
@@ -62,7 +79,7 @@
   </table>
 </div>
 {% else %}
-<div class="text-center py-20 text-gray-400">
+<div class="text-center py-20 text-slate-400 bg-white rounded-lg border border-slate-200">
   <p>請求書がありません</p>
   <p class="text-sm mt-2">見積書を承認済みにしてから「請求書に変換」で作成できます</p>
 </div>

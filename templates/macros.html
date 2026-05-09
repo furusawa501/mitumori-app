@@ -1,25 +1,25 @@
 {% macro quote_badge(status) %}
 {% if status == 'draft' %}
-<span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">下書き</span>
+<span class="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">下書き</span>
 {% elif status == 'sent' %}
-<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">送付済み</span>
+<span class="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700">送付済み</span>
 {% elif status == 'accepted' %}
-<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">承認済み</span>
+<span class="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700">承認済み</span>
 {% elif status == 'rejected' %}
-<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">却下済み</span>
+<span class="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-medium bg-red-50 text-red-700">却下済み</span>
 {% elif status == 'converted' %}
-<span class="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">変換済み</span>
+<span class="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-medium bg-violet-50 text-violet-700">変換済み</span>
 {% endif %}
 {% endmacro %}
 
 {% macro invoice_badge(status) %}
 {% if status == 'draft' %}
-<span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">下書き</span>
+<span class="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">下書き</span>
 {% elif status == 'sent' %}
-<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">送付済み</span>
+<span class="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700">送付済み</span>
 {% elif status == 'paid' %}
-<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">入金済み</span>
+<span class="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700">入金済み</span>
 {% elif status == 'overdue' %}
-<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">期日超過</span>
+<span class="inline-flex items-center text-xs px-2.5 py-0.5 rounded-full font-medium bg-red-50 text-red-700">期日超過</span>
 {% endif %}
 {% endmacro %}

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from sqlalchemy import case
 from database import get_db
 from models import Customer, LineItem, Quote
 from services.conversion import convert_quote_to_invoice
@@ -29,13 +30,36 @@ def _recalc_totals(quote: Quote) -> None:
     quote.total = quote.subtotal + quote.tax_amount
 
 
+_QUOTE_STATUS_ORDER = case(
+    {"draft": 1, "sent": 2, "accepted": 3, "rejected": 4, "converted": 5},
+    value=Quote.status,
+)
+
+_QUOTE_SORT_COLS = {
+    "customer":   Customer.company_name,
+    "title":      Quote.title,
+    "status":     _QUOTE_STATUS_ORDER,
+    "total":      Quote.total,
+    "issue_date": Quote.issue_date,
+}
+
 @router.get("")
-def list_quotes(request: Request, status: str | None = None, db: Session = Depends(get_db)):
-    q = db.query(Quote)
+def list_quotes(
+    request: Request,
+    status: str | None = None,
+    sort: str = "issue_date",
+    order: str = "desc",
+    db: Session = Depends(get_db),
+):
+    q = db.query(Quote).join(Customer)
     if status:
         q = q.filter(Quote.status == status)
-    quotes = q.order_by(Quote.created_at.desc()).all()
-    return render(request, "quotes/list.html", quotes=quotes, current_status=status)
+    col = _QUOTE_SORT_COLS.get(sort, Quote.issue_date)
+    q = q.order_by(col.asc() if order == "asc" else col.desc())
+    quotes = q.all()
+    return render(request, "quotes/list.html",
+                  quotes=quotes, current_status=status,
+                  current_sort=sort, current_order=order)
 
 
 @router.get("/new")
