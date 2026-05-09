@@ -9,3 +9,10 @@ nixPkgs = [
   "shared-mime-info",
   "fontconfig",
 ]
+nixLibs = [
+  "cairo",
+  "pango",
+  "gdk-pixbuf",
+  "libffi",
+  "gobject-introspection",
+]
